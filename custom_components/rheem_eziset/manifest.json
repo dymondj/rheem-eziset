@@ -3,9 +3,10 @@
   "name": "Rheem EziSET",
   "codeowners": ["@illuzn"],
   "config_flow": true,
+  "dependencies": ["network"],
   "documentation": "https://github.com/illuzn/rheem-eziset",
   "integration_type": "device",
   "iot_class": "local_polling",
   "issue_tracker": "https://github.com/illuzn/rheem-eziset/issues",
-  "version": "2025.8.2"
+  "version": "2026.11.0"
 }

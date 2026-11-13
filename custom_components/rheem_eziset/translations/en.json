@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "Rheem Eziset Host",
-        "description": "Please provide the local IPv4 address of your Rheem EziSET water heater.",
+        "description": "Please provide the local IPv4 address of your Rheem EziSET water heater. If a heater was found on your network its address has been filled in for you.",
         "data": {
           "host": "0.0.0.0"
         }
@@ -13,7 +13,8 @@
       "connection": "Unable to connect to the device."
     },
     "abort": {
-      "host_already_exists": "Error. This host has already been configured."
+      "host_already_exists": "Error. This host has already been configured.",
+      "already_configured": "Error. This device has already been configured."
     }
   },
   "options": {
@@ -25,6 +26,40 @@
           "scan_interval": "Sensor scan interval in seconds (Default: 5)"
         }
       }
+    }
+  },
+  "services": {
+    "start_bath_fill": {
+      "name": "Start bath fill",
+      "description": "Takes bath fill control of the water heater. The heater waits for the hot tap to be opened, then stops the hot water once the requested volume has been delivered. Home Assistant keeps control until the bath fill is cancelled.",
+      "fields": {
+        "temperature": {
+          "name": "Temperature",
+          "description": "Bath fill temperature in °C. Must be within the limits reported by your heater."
+        },
+        "volume": {
+          "name": "Volume",
+          "description": "Bath fill volume in litres. Must be within the limits reported by your heater."
+        }
+      }
+    },
+    "cancel_bath_fill": {
+      "name": "Cancel bath fill",
+      "description": "Cancels a bath fill which was started by Home Assistant and hands back control. Also use this once a bath fill is complete and the taps have been closed."
+    },
+    "set_heater_name": {
+      "name": "Set heater name",
+      "description": "Renames the heater. The heater must be idle. Names are 1 to 10 letters or numbers.",
+      "fields": {
+        "name": {
+          "name": "Name",
+          "description": "The new name of the heater."
+        }
+      }
+    },
+    "sync_time": {
+      "name": "Sync time",
+      "description": "Sends the current date and time to the heater. The official app does this when the heater reports that it has no first used date."
     }
   }
 }

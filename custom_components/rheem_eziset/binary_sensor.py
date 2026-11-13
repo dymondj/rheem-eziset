@@ -1,12 +1,13 @@
 """Binary Sensor platform for rheem_eziset."""
 from __future__ import annotations
 
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.components.binary_sensor import BinarySensorDeviceClass
-from homeassistant.helpers.entity import EntityCategory
+from homeassistant.components.binary_sensor import BinarySensorDeviceClass, BinarySensorEntity
+from homeassistant.const import EntityCategory
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
-from .const import DOMAIN, IDPREFIX
-from .coordinator import RheemEziSETDataUpdateCoordinator
+from .const import MODE_APP_ERROR, MODE_HEATER_ERROR
+from .coordinator import RheemEziSETConfigEntry, RheemEziSETDataUpdateCoordinator
 from .entity import RheemEziSETEntity
 
 BINARY_SENSOR_MAP = [
@@ -15,121 +16,76 @@ BINARY_SENSOR_MAP = [
 ]
 
 
-async def async_setup_entry(hass, entry, async_add_devices):
+async def async_setup_entry(hass: HomeAssistant, entry: RheemEziSETConfigEntry, async_add_entities: AddConfigEntryEntitiesCallback) -> None:
     """Add binary sensors for passed config_entry in HA."""
-    coordinator = hass.data[DOMAIN]
+    coordinator = entry.runtime_data
 
-    binary_sensors = [RheemEziSETBinarySensor(coordinator, entry, description, key, icon, device_class, entity_category) for description, key, icon, device_class, entity_category in BINARY_SENSOR_MAP]
+    binary_sensors: list[BinarySensorEntity] = [
+        RheemEziSETBinarySensor(coordinator, entry, description, key, icon, device_class, entity_category) for description, key, icon, device_class, entity_category in BINARY_SENSOR_MAP
+    ]
     binary_sensors.append(RheemEziSETProblemBinarySensor(coordinator, entry))
 
-    async_add_devices(binary_sensors, True)
+    async_add_entities(binary_sensors)
 
 
-class RheemEziSETBinarySensor(RheemEziSETEntity):
+class RheemEziSETBinarySensor(RheemEziSETEntity, BinarySensorEntity):
     """rheem_eziset Binary Sensor class."""
 
     def __init__(
         self,
         coordinator: RheemEziSETDataUpdateCoordinator,
-        entry: ConfigEntry,
+        entry: RheemEziSETConfigEntry,
         description: str,
         key: str,
-        icon: str,
-        device_class: str,
-        entity_category: str,
+        icon: str | None,
+        device_class: BinarySensorDeviceClass,
+        entity_category: EntityCategory,
     ) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator, entry)
-        self._id = f"{IDPREFIX}{id}"
         self.description = description
         self.key = key
-        self._icon = icon
-        self._device_class = device_class
-        self._entity_category = entity_category
-        self._attr_has_entity_name = True
+        self._attr_name = description
+        self._attr_unique_id = f"{entry.entry_id}-{description}"
+        self._attr_icon = icon
+        self._attr_device_class = device_class
+        self._attr_entity_category = entity_category
 
     @property
-    def state(self):
+    def is_on(self) -> bool | None:
         """Return the state of the binary sensor."""
-        result = self.coordinator.data[self.key]
+        data = self.coordinator.data
         if self.key == "appErrCode":
-            if int(result) == 0:
-                return "off"
-            return "on"
-        else:
-            return "off"
-
-    @property
-    def icon(self):
-        """Return the icon with processing in the case of some sensors."""
-        return self._icon
-
-    @property
-    def device_class(self):
-        """Return the device class."""
-        return self._device_class
-
-    @property
-    def name(self):
-        """Return the sensor name."""
-        return self.description
-
-    @property
-    def unique_id(self):
-        """Return a unique id."""
-        return f"{self.entry.entry_id}-{self.description}"
-
-    @property
-    def entity_category(self):
-        """Return the entity category."""
-        return self._entity_category
+            try:
+                return int(data.get(self.key, 0)) != 0 or data.get("mode") in (MODE_HEATER_ERROR, MODE_APP_ERROR)
+            except (TypeError, ValueError):
+                return None
+        return False
 
 
-class RheemEziSETProblemBinarySensor(RheemEziSETEntity):
-    """rheem_eziset Binary Sensor class."""
+class RheemEziSETProblemBinarySensor(RheemEziSETEntity, BinarySensorEntity):
+    """rheem_eziset connectivity Binary Sensor class. On means that the device is connected."""
+
+    _attr_device_class = BinarySensorDeviceClass.CONNECTIVITY
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_name = "Connectivity Problem"
 
     def __init__(
         self,
         coordinator: RheemEziSETDataUpdateCoordinator,
-        entry: ConfigEntry,
+        entry: RheemEziSETConfigEntry,
     ) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator, entry)
-        self._id = f"{IDPREFIX}{id}"
         self.description = "Connectivity Problem"
-        self._device_class = BinarySensorDeviceClass.CONNECTIVITY
-        self._entity_category = EntityCategory.DIAGNOSTIC
-        self._attr_has_entity_name = True
+        self._attr_unique_id = f"{entry.entry_id}-connectivity-problem"
 
     @property
-    def state(self) -> bool:
+    def is_on(self) -> bool:
         """Return the state of the binary sensor."""
-        if self.coordinator.problem_flag is False:
-            return "on"
-        else:
-            return "off"
+        return not self.coordinator.problem_flag
 
     @property
     def available(self) -> bool:
         """Override availability, this one should always be available."""
         return True
-
-    @property
-    def device_class(self):
-        """Return the device class."""
-        return BinarySensorDeviceClass.CONNECTIVITY
-
-    @property
-    def name(self):
-        """Return the sensor name."""
-        return "Connectivity Problem"
-
-    @property
-    def unique_id(self):
-        """Return a unique id."""
-        return f"{self.entry.entry_id}-connectivity-problem"
-
-    @property
-    def entity_category(self):
-        """Return the entity category."""
-        return EntityCategory.DIAGNOSTIC

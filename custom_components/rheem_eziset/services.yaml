@@ -1,0 +1,45 @@
+start_bath_fill:
+  target:
+    entity:
+      integration: rheem_eziset
+      domain: water_heater
+  fields:
+    temperature:
+      required: true
+      example: 40
+      selector:
+        number:
+          min: 37
+          max: 48
+          step: 1
+          unit_of_measurement: "°C"
+    volume:
+      required: true
+      example: 100
+      selector:
+        number:
+          min: 10
+          max: 500
+          step: 1
+          unit_of_measurement: "L"
+cancel_bath_fill:
+  target:
+    entity:
+      integration: rheem_eziset
+      domain: water_heater
+set_heater_name:
+  target:
+    entity:
+      integration: rheem_eziset
+      domain: water_heater
+  fields:
+    name:
+      required: true
+      example: "Rheem"
+      selector:
+        text:
+sync_time:
+  target:
+    entity:
+      integration: rheem_eziset
+      domain: water_heater
